@@ -25,15 +25,11 @@ from functools import wraps
 
 from urllib import quote as _quote
 from urlparse import urlparse, urlunparse
-from httplib import HTTPException, HTTPConnection, HTTPSConnection
+from httplib import HTTPException, HTTPConnection
 from time import sleep
 
 from swiftclient.exceptions import ClientException, InvalidHeadersException
-
-try:
-    from swiftclient.https_connection import HTTPSConnectionNoSSLComp
-except ImportError:
-    HTTPSConnectionNoSSLComp = HTTPSConnection
+from swiftclient.https_connection import HTTPSConnection
 
 
 try:
@@ -119,13 +115,15 @@ except ImportError:
     from json import loads as json_loads
 
 
-def http_connection(url, proxy=None, ssl_compression=True):
+def http_connection(url, proxy=None, insecure=False, ssl_compression=True):
     """
     Make an HTTPConnection or HTTPSConnection
 
     :param url: url to connect to
     :param proxy: proxy to connect through, if any; None by default; str of the
                   format 'http://127.0.0.1:8888' to set one
+    :param insecure: Allow to access servers without checking SSL certs.
+                     The server's certificate will not be verified.
     :param ssl_compression: Whether to enable compression at the SSL layer.
                             If set to 'False' and the pyOpenSSL library is
                             present an attempt to disable SSL compression
@@ -141,10 +139,9 @@ def http_connection(url, proxy=None, ssl_compression=True):
     if parsed.scheme == 'http':
         conn = HTTPConnection(host)
     elif parsed.scheme == 'https':
-        if ssl_compression is True:
-            conn = HTTPSConnection(host)
-        else:
-            conn = HTTPSConnectionNoSSLComp(host)
+        conn = HTTPSConnection(host,
+                               insecure=insecure,
+                               ssl_compression=ssl_compression)
     else:
         raise ClientException('Cannot handle protocol scheme %s for url %s' %
                               (parsed.scheme, repr(url)))
@@ -1043,8 +1040,8 @@ class Connection(object):
         :param os_options: The OpenStack options which can have tenant_id,
                            auth_token, service_type, endpoint_type,
                            tenant_name, object_storage_url, region_name
-        :param insecure: Allow to access insecure keystone server.
-                         The keystone's certificate will not be verified.
+        :param insecure: Allow to access servers without checking SSL certs.
+                         The server's certificate will not be verified.
         :param ssl_compression: Whether to enable compression at the SSL layer.
                                 If set to 'False' and the pyOpenSSL library is
                                 present an attempt to disable SSL compression
@@ -1080,6 +1077,7 @@ class Connection(object):
 
     def http_connection(self):
         return http_connection(self.url,
+                               insecure=self.insecure,
                                ssl_compression=self.ssl_compression)
 
     def _add_response_dict(self, target_dict, kwargs):

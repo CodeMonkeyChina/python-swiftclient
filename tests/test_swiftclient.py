@@ -15,7 +15,6 @@
 
 # TODO: More tests
 import mock
-import httplib
 import socket
 import StringIO
 import testtools
@@ -126,7 +125,7 @@ class MockHttpTest(testtools.TestCase):
             query_string = kwargs.get('query_string')
             storage_url = kwargs.get('storage_url')
 
-            def wrapper(url, proxy=None, ssl_compression=True):
+            def wrapper(url, proxy=None, insecure=False, ssl_compression=True):
                 if storage_url:
                     self.assertEqual(storage_url, url)
 
@@ -187,9 +186,8 @@ class TestHttpHelpers(MockHttpTest):
         _junk, conn = c.http_connection(url)
         self.assertTrue(isinstance(conn, c.HTTPConnection))
         url = 'https://www.test.com'
-        _junk, conn = c.http_connection(url)
-        self.assertTrue(isinstance(conn, httplib.HTTPSConnection) or
-                        isinstance(conn, c.HTTPSConnectionNoSSLComp))
+        _junk, conn = c.http_connection(url, insecure=True)
+        self.assertTrue(isinstance(conn, c.HTTPSConnection))
         url = 'ftp://www.test.com'
         self.assertRaises(c.ClientException, c.http_connection, url)
 
@@ -841,7 +839,8 @@ class TestConnection(MockHttpTest):
             def read(self, *args, **kwargs):
                 return ''
 
-        def local_http_connection(url, proxy=None, ssl_compression=True):
+        def local_http_connection(url, proxy=None, insecure=False,
+                                  ssl_compression=True):
             parsed = urlparse(url)
             return parsed, LocalConnection()
 

@@ -1411,9 +1411,8 @@ Examples:
     parser.add_option('--insecure',
                       action="store_true", dest="insecure",
                       default=default_val,
-                      help='Allow swiftclient to access insecure keystone '
-                           'server. The keystone\'s certificate will not '
-                           'be verified. '
+                      help='Allow swiftclient to access servers without '
+                           'verifying the SSL certificate. '
                            'Defaults to env[SWIFTCLIENT_INSECURE] '
                            '(set to \'true\' to enable).')
     parser.add_option('--no-ssl-compression',
